@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CritterCoin – Houses Display (PWA + One‑Click Win)</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --card:#111827; --muted:#6b7280; --text:#e5e7eb; --accent:#60a5fa; --ring:#93c5fd;
+      --error:#ef4444; --info:#0ea5e9;
+    }
+    html,body{height:100%}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; background:radial-gradient(1200px 800px at 10% -10%, #101828 10%, #0b0f14 60%); color:var(--text)}
+    .wrap{display:grid; grid-template-rows:auto auto 1fr; min-height:100%}
+    header{display:flex; gap:12px; align-items:center; padding:12px 16px; position:sticky; top:0; background:linear-gradient(180deg, rgba(11,15,20,.9), rgba(11,15,20,.6)); backdrop-filter:saturate(1.1) blur(6px); border-bottom:1px solid rgba(148,163,184,.15)}
+    header .brand{display:flex; align-items:center; gap:10px}
+    header .brand img.logo{height:44px; width:auto; border-radius:8px; border:1px solid rgba(148,163,184,.25); box-shadow:0 2px 10px rgba(0,0,0,.25)}
+    header .title{font-weight:700; letter-spacing:.2px; font-size:18px}
+    header .pill{margin-left:auto; display:flex; gap:8px; align-items:center}
+    button{background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:8px 12px; cursor:pointer; transition:.2s transform, .2s box-shadow}
+    button:hover{box-shadow:0 10px 40px rgba(96,165,250,.25); transform:translateY(-1px)}
+    .ticker{position:relative; height:40px; overflow:hidden; border-bottom:1px solid rgba(148,163,184,.15); background:linear-gradient(180deg, rgba(17,24,39,.75), rgba(17,24,39,.55))}
+    .ticker-track{display:inline-flex; align-items:center; gap:24px; white-space:nowrap; padding:8px 16px; animation:marquee 28s linear infinite}
+    .ticker-item{display:inline-flex; align-items:center; gap:8px; font-size:14px; background:rgba(2,132,199,.12); border:1px solid rgba(56,189,248,.35); padding:6px 10px; border-radius:999px; box-shadow:0 6px 16px rgba(2,132,199,.15)}
+    .ticker-item b{color:#e5e7eb}
+    .ticker-item .meta{opacity:.7}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; padding:16px}
+    .card{position:relative; background:linear-gradient(180deg, rgba(17,24,39,.8), rgba(17,24,39,.6)); border:1px solid rgba(148,163,184,.12); border-radius:20px; padding:16px; overflow:hidden}
+    .rank{position:absolute; top:12px; right:14px; font-weight:800; font-size:24px; opacity:.9}
+    .name{font-size:20px; font-weight:700; margin-bottom:6px}
+    .points{font:600 13px/1.2 ui-sans-serif; color:var(--muted); margin-bottom:10px}
+    .bar{height:10px; border-radius:999px; background:rgba(99,102,241,.15); overflow:hidden; border:1px solid rgba(148,163,184,.15)}
+    .bar>i{display:block; height:100%; width:0%; background:linear-gradient(90deg, #60a5fa, #a78bfa)}
+    .updated{animation:pulse .9s ease-out}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)} 100%{box-shadow:0 0 0 22px rgba(34,197,94,0)}}
+    .delta{position:absolute; top:8px; left:12px; font-weight:800; font-size:12px; padding:5px 8px; border-radius:999px; background:rgba(34,197,94,.15); color:#34d399; border:1px solid rgba(34,197,94,.35); opacity:0; transform:translateY(8px)}
+    .delta.show{animation:rise 1.1s ease-out forwards}
+    @keyframes rise{0%{opacity:0; transform:translateY(8px)} 15%{opacity:1; transform:translateY(0)} 85%{opacity:1} 100%{opacity:0; transform:translateY(-8px)}}
+    .confetti{position:fixed; left:0; top:0; width:100vw; height:100vh; pointer-events:none; overflow:hidden}
+    .confetti span{position:absolute; width:8px; height:14px; background:#fff; opacity:.9; animation:fall 1.5s linear forwards}
+    @keyframes fall{to{transform:translateY(110vh) rotate(540deg); opacity:0}}
+    .footer{opacity:.6; font-size:12px; padding:4px 16px 16px}
+    .ribbon{display:none; align-items:center; gap:10px; padding:10px 14px; background:rgba(14,165,233,.12); border-top:1px solid rgba(14,165,233,.35); border-bottom:1px solid rgba(14,165,233,.35); color:#bae6fd}
+    .ribbon .badge{background:#0ea5e9; color:white; border-radius:999px; padding:2px 8px; font-size:12px}
+    .ribbon.error{background:rgba(239,68,68,.12); color:#fecaca; border-color:rgba(239,68,68,.35)}
+    .modal{position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px}
+    .dialog{background:#0b1220; border:1px solid rgba(148,163,184,.25); border-radius:14px; padding:16px; width:620px; max-width:95vw; box-shadow:0 22px 60px rgba(0,0,0,.45)}
+    .dialog h2{margin:0 0 8px 0; font-size:18px}
+    .row{display:grid; grid-template-columns:160px 1fr; gap:10px; align-items:center; margin:8px 0}
+    .row input, .row select{background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:8px 10px}
+    .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:12px}
+    .note{font-size:12px; color:#9ca3af}
+    .panel{position:fixed; right:14px; bottom:14px; width:320px; max-width:90vw; background:#0b1220; border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.35); font-size:12px}
+    .panel h3{margin:0 0 6px 0; font-size:13px}
+    .panel pre{max-height:180px; overflow:auto; background:#0a0f1a; border:1px solid rgba(148,163,184,.2); padding:8px; border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img id="orgLogo" class="logo" alt="Organization Logo" src="/mnt/data/1200px-Royal_Rangers.svg_.png" />
+        <div class="title">🏆 CritterCoin – Houses Live Display</div>
+      </div>
+      <div class="pill">
+        <button id="installBtn" style="display:none" title="Install as App">Install</button>
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted)"><input id="soundToggle" type="checkbox" checked /> Sound</label>
+        <button id="fsBtn" title="Fullscreen">Fullscreen</button>
+        <button id="themeBtn" title="Toggle Theme">Theme</button>
+        <button id="settingsBtn" title="Settings">⚙️ Settings</button>
+        <button id="retryBtn" title="Retry API">Retry</button>
+      </div>
+    </header>
+
+    <div id="ribbon" class="ribbon" role="status" aria-live="polite"></div>
+
+    <div id="ticker" class="ticker" aria-live="polite" aria-atomic="false">
+      <div class="ticker-track" id="tickerTrack"></div>
+    </div>
+
+    <main>
+      <div id="grid" class="grid" role="list"></div>
+      <div class="footer">Auto-refreshing scores. Sounds + confetti on increases. Ticker shows recent awards. <span id="modeText"></span></div>
+    </main>
+  </div>
+  <div id="fx" class="confetti" aria-hidden="true"></div>
+
+  <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="dialog">
+      <h2 id="dlgTitle">Settings</h2>
+      <div class="row"><label for="orgId">Organization ID</label><input id="orgId" type="number" placeholder="8058"/></div>
+      <div class="row"><label for="apiUrl">Houses API URL</label><input id="apiUrl" placeholder="https://www.crittercoin.com/api/houses?orgid={ORG_ID}"/></div>
+      <div class="row"><label for="eventsUrl">Events API URL</label><input id="eventsUrl" placeholder="https://www.crittercoin.com/api/events?orgid={ORG_ID}&limit=30"/></div>
+      <div class="row"><label for="apiKey">API Key</label><input id="apiKey" type="password" placeholder="Bearer token or key"/></div>
+      <div class="row"><label for="logoUrl">Logo URL / Data URL</label><input id="logoUrl" placeholder="https://example.org/logo.png or data:image/png;base64,..."/></div>
+      <div class="row"><label for="logoFile">Upload Logo</label><input id="logoFile" type="file" accept="image/*"/></div>
+      <div class="row"><label for="logoH">Logo Height (px)</label><input id="logoH" type="number" min="20" max="200" placeholder="44"/></div>
+      <div class="row"><label for="fallback">Fallback to Demo</label><select id="fallback"><option value="true">Yes</option><option value="false">No</option></select></div>
+      <div class="row"><label for="darkSel">Dark Theme</label><select id="darkSel"><option value="true">Dark</option><option value="false">Light</option></select></div>
+      <div class="note">Settings are stored locally in this browser. You can also pass URL params like <code>?orgid=8058&apiKey=...&logo=...&logoH=44</code>.</div>
+      <div class="actions">
+        <button id="resetBtn">Reset to Demo</button>
+        <button id="cancelBtn">Cancel</button>
+        <button id="saveBtn">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="diag" class="panel" style="display:none">
+    <h3>Diagnostics</h3>
+    <div>Secure context: <span id="secureCtx"></span> • Protocol: <span id="proto"></span></div>
+    <div>Last error:</div>
+    <pre id="errBox">(none)</pre>
+  </div>
+
+  <script>
+    // ==========================
+    // DEFAULTS & SETTINGS LOADER
+    // ==========================
+    const DEFAULTS = {
+      MODE: 'api',
+      ORG_ID: 8058,
+      API_URL: 'https://www.crittercoin.com/api/houses?orgid={ORG_ID}',
+      EVENTS_URL: 'https://www.crittercoin.com/api/events?orgid={ORG_ID}&limit=30',
+      API_KEY: 'O8058-27-a5dca7d55fd94d489fbd65dce2888240',
+      POLL_MS: 8000,
+      EVENTS_POLL_MS: 6000,
+      MAX_HOUSES: 12,
+      DARK: true,
+      FALLBACK_TO_MOCK: true,
+      SHOW_DIAGNOSTICS: true,
+      TIMEOUT_MS: 5000,
+      LOGO_URL: '/mnt/data/1200px-Royal_Rangers.svg_.png',
+      LOGO_HEIGHT: 44
+    };
+
+    let CONFIG = loadSettings();
+
+    function loadSettings(){
+      try{
+        const qs = new URLSearchParams(location.search);
+        const stored = JSON.parse(localStorage.getItem('cc_display_settings')||'{}');
+        const cfg = { ...DEFAULTS, ...stored };
+        if(qs.has('orgid')) cfg.ORG_ID = Number(qs.get('orgid'))||cfg.ORG_ID;
+        if(qs.has('apiKey')) cfg.API_KEY = qs.get('apiKey');
+        if(qs.has('apiUrl')) cfg.API_URL = qs.get('apiUrl');
+        if(qs.has('eventsUrl')) cfg.EVENTS_URL = qs.get('eventsUrl');
+        if(qs.has('mode')) cfg.MODE = qs.get('mode');
+        if(qs.has('dark')) cfg.DARK = qs.get('dark')==='1' || qs.get('dark')==='true';
+        if(qs.has('logo')) cfg.LOGO_URL = qs.get('logo');
+        if(qs.has('logoH')) cfg.LOGO_HEIGHT = Number(qs.get('logoH'))||cfg.LOGO_HEIGHT;
+        return cfg;
+      }catch{ return { ...DEFAULTS }; }
+    }
+
+    function saveSettings(newCfg){
+      CONFIG = { ...CONFIG, ...newCfg };
+      localStorage.setItem('cc_display_settings', JSON.stringify(CONFIG));
+      location.reload();
+    }
+
+    function fillPlaceholders(url){ return (url||'').replaceAll('{ORG_ID}', String(CONFIG.ORG_ID)); }
+
+    // ==========================
+    // ENV + UI WIRING
+    // ==========================
+    const ribbon = document.getElementById('ribbon');
+    const diag = document.getElementById('diag');
+    const errBox = document.getElementById('errBox');
+    const secureCtx = document.getElementById('secureCtx');
+    const proto = document.getElementById('proto');
+    const modeText = document.getElementById('modeText');
+    const themeBtn = document.getElementById('themeBtn');
+    const fsBtn = document.getElementById('fsBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const installBtn = document.getElementById('installBtn');
+    const soundToggle = document.getElementById('soundToggle');
+
+    const settingsModal = document.getElementById('settingsModal');
+    const orgId = document.getElementById('orgId');
+    const apiUrl = document.getElementById('apiUrl');
+    const eventsUrl = document.getElementById('eventsUrl');
+    const apiKey = document.getElementById('apiKey');
+    const poll = document.getElementById('poll');
+    const epoll = document.getElementById('epoll');
+    const maxH = document.getElementById('maxH');
+    const fallback = document.getElementById('fallback');
+    const darkSel = document.getElementById('darkSel');
+    const logoUrlInput = document.getElementById('logoUrl');
+    const logoFileInput = document.getElementById('logoFile');
+    const logoHInput = document.getElementById('logoH');
+    const orgLogo = document.getElementById('orgLogo');
+    const palette = ['#60a5fa','#f472b6','#34d399','#fbbf24','#f87171','#a78bfa','#22d3ee','#c084fc'];
+
+    secureCtx.textContent = window.isSecureContext ? 'yes' : 'no';
+    proto.textContent = location.protocol;
+    if(CONFIG.SHOW_DIAGNOSTICS) diag.style.display = 'block';
+
+    function showRibbon(kind, msg){
+      ribbon.className = 'ribbon' + (kind==='error' ? ' error' : '');
+      ribbon.innerHTML = `<span class="badge">${kind==='error'?'ERROR':'INFO'}</span> ${msg}`;
+      ribbon.style.display = 'flex';
+    }
+    function clearRibbon(){ ribbon.style.display = 'none'; }
+
+    function setModeText(){ modeText.textContent = `Mode: ${CONFIG.MODE.toUpperCase()} ${CONFIG.MODE==='mock'?'(demo data)': ''}`; }
+
+    function applyTheme(){
+      document.documentElement.style.setProperty('--bg', CONFIG.DARK ? '#0b0f14' : '#f8fafc');
+      document.documentElement.style.setProperty('--card', CONFIG.DARK ? '#111827' : '#ffffff');
+      document.documentElement.style.setProperty('--text', CONFIG.DARK ? '#e5e7eb' : '#111827');
+      document.body.style.background = CONFIG.DARK ? 'radial-gradient(1200px 800px at 10% -10%, #101828 10%, #0b0f14 60%)' : '#f8fafc';
+    }
+    function applyLogo(){
+      try{
+        if(CONFIG.LOGO_URL){ orgLogo.src = CONFIG.LOGO_URL; orgLogo.style.display='block'; orgLogo.style.height = (CONFIG.LOGO_HEIGHT||44)+'px'; }
+        else { orgLogo.style.display='none'; }
+      }catch{ orgLogo.style.display='none'; }
+    }
+
+    themeBtn.addEventListener('click', ()=>{ CONFIG.DARK = !CONFIG.DARK; localStorage.setItem('cc_display_settings', JSON.stringify(CONFIG)); applyTheme(); });
+    fsBtn.addEventListener('click', ()=>{ if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); });
+    retryBtn.addEventListener('click', ()=>{ clearRibbon(); CONFIG.MODE = 'api'; setModeText(); });
+    settingsBtn.addEventListener('click', ()=> openSettings());
+
+    function openSettings(){
+      orgId.value = CONFIG.ORG_ID;
+      apiUrl.value = CONFIG.API_URL;
+      eventsUrl.value = CONFIG.EVENTS_URL;
+      apiKey.value = CONFIG.API_KEY;
+      poll.value = CONFIG.POLL_MS;
+      epoll.value = CONFIG.EVENTS_POLL_MS;
+      maxH.value = CONFIG.MAX_HOUSES;
+      fallback.value = String(CONFIG.FALLBACK_TO_MOCK);
+      darkSel.value = String(CONFIG.DARK);
+      logoUrlInput.value = CONFIG.LOGO_URL || '';
+      logoHInput.value = CONFIG.LOGO_HEIGHT || 44;
+      settingsModal.style.display = 'flex';
+    }
+
+    cancelBtn.onclick = ()=> settingsModal.style.display = 'none';
+    resetBtn.onclick = ()=> saveSettings({ ...DEFAULTS });
+    saveBtn.onclick = ()=>{
+      const persist = () => saveSettings({
+        ORG_ID: Number(orgId.value)||DEFAULTS.ORG_ID,
+        API_URL: apiUrl.value||DEFAULTS.API_URL,
+        EVENTS_URL: eventsUrl.value||DEFAULTS.EVENTS_URL,
+        API_KEY: apiKey.value||'',
+        POLL_MS: Math.max(2000, Number(poll.value)||DEFAULTS.POLL_MS),
+        EVENTS_POLL_MS: Math.max(2000, Number(epoll.value)||DEFAULTS.EVENTS_POLL_MS),
+        MAX_HOUSES: Math.max(1, Number(maxH.value)||DEFAULTS.MAX_HOUSES),
+        FALLBACK_TO_MOCK: fallback.value==='true',
+        DARK: darkSel.value==='true',
+        LOGO_URL: logoUrlInput.value||'',
+        LOGO_HEIGHT: Math.max(20, Math.min(200, Number(logoHInput.value)||44))
+      });
+      const file = logoFileInput.files && logoFileInput.files[0];
+      if(file){
+        const reader = new FileReader();
+        reader.onload = () => { logoUrlInput.value = reader.result; persist(); };
+        reader.readAsDataURL(file);
+      } else {
+        persist();
+      }
+    };
+
+    applyTheme(); setModeText(); applyLogo();
+
+    // ==========================
+    // PWA (Installable)
+    // ==========================
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE = 'cc-display-v1';
+        self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./']))); self.skipWaiting(); });
+        self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+        self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+      `;
+      const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'text/javascript' }));
+      navigator.serviceWorker.register(swUrl).then(()=>{
+        showRibbon('info', 'App ready to install (PWA). Use the Install button.');
+      }).catch(err=>{ console.warn('SW register failed', err); });
+    }
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'inline-block'; });
+    installBtn.addEventListener('click', async ()=>{ if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.style.display = 'none'; });
+
+    // ==========================
+    // NETWORK HELPERS
+    // ==========================
+    function timeoutPromise(ms){ return new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout:'+ms)), ms)); }
+    async function fetchJson(url, opts={}){
+      try{
+        const res = await Promise.race([ fetch(url, { ...opts, mode:'cors', cache:'no-store' }), timeoutPromise(CONFIG.TIMEOUT_MS) ]);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      }catch(err){
+        errBox.textContent = (err && err.stack) ? err.stack : String(err);
+        if(CONFIG.FALLBACK_TO_MOCK){ CONFIG.MODE = 'mock'; setModeText(); showRibbon('info', 'Falling back to demo data. Reason: '+(err.message||err)); }
+        else { showRibbon('error', 'Failed to fetch live data.'); }
+        throw err;
+      }
+    }
+
+    // ==========================
+    // AUDIO
+    // ==========================
+    let audioCtx; function ensureAudio(){ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }
+    function chime(){ if(!soundToggle.checked) return; ensureAudio(); const ctx=audioCtx, t=ctx.currentTime; [880,1320,1760].forEach((f,i)=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.value=0.0001; o.connect(g).connect(ctx.destination); const s=t+i*0.06, d=0.18; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.3,s+0.03); g.gain.exponentialRampToValueAtTime(0.00001,s+d); o.start(s); o.stop(s+d+0.02); }); }
+
+    // ==========================
+    // CONFETTI FX
+    // ==========================
+    const fx = document.getElementById('fx');
+    function confettiBurst(){ for(let i=0;i<40;i++){ const s=document.createElement('span'); s.style.left=Math.random()*100+"vw"; s.style.top='-10vh'; s.style.background=`hsl(${Math.random()*360}, 90%, 60%)`; s.style.animationDelay=(Math.random()*0.5)+"s"; s.style.transform=`translateY(-10vh) rotate(${Math.random()*360}deg)`; fx.appendChild(s); setTimeout(()=>s.remove(),1800); } }
+
+    // ==========================
+    // DATA LAYER
+    // ==========================
+    let last = new Map();
+
+    async function getHouses(){
+      if(CONFIG.MODE==='api' && CONFIG.API_URL){
+        const headers = CONFIG.API_KEY ? { 'Authorization': `Bearer ${CONFIG.API_KEY}` } : {};
+        try{ return await fetchJson(fillPlaceholders(CONFIG.API_URL), { headers }); } catch{}
+      }
+      return mockTick();
+    }
+    async function getEvents(){
+      if(CONFIG.MODE==='api' && CONFIG.EVENTS_URL){
+        const headers = CONFIG.API_KEY ? { 'Authorization': `Bearer ${CONFIG.API_KEY}` } : {};
+        try{ const data = await fetchJson(fillPlaceholders(CONFIG.EVENTS_URL), { headers }); return Array.isArray(data)?data:(data.items||[]); } catch{}
+      }
+      return mockEventsTick();
+    }
+
+    function normalizeHouses(arr){
+      return (arr||[]).map((h,i)=>({
+        id: h.id ?? h.houseId ?? (i+1),
+        name: String(h.name ?? h.house ?? h.title ?? `House ${i+1}`),
+        points: Number(h.points ?? h.score ?? h.total ?? 0) || 0,
+        color: h.color || palette[i%palette.length]
+      }));
+    }
+    function computeMaxPoints(items){ return items.reduce((m,x)=> Math.max(m, x.points), 1); }
+    function sortHouses(items){ return [...items].sort((a,b)=> b.points - a.points); }
+
+    function render(items){
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      const max = computeMaxPoints(items);
+      const sorted = sortHouses(items).slice(0, CONFIG.MAX_HOUSES);
+      let anyIncrease = false;
+      sorted.forEach((h,idx)=>{
+        const prev = last.get(h.id);
+        const delta = prev ? (h.points - prev.points) : 0;
+        const card = document.createElement('div'); card.className='card'; card.style.borderColor=h.color+'33';
+        const name = document.createElement('div'); name.className='name'; name.textContent=h.name; name.style.color=h.color;
+        const pts = document.createElement('div'); pts.className='points'; pts.textContent = new Intl.NumberFormat().format(h.points) + ' pts';
+        const rank = document.createElement('div'); rank.className='rank'; rank.textContent = `#${idx+1}`; rank.style.color=h.color;
+        const bar = document.createElement('div'); bar.className='bar';
+        const i = document.createElement('i'); i.style.width = (h.points/max*100).toFixed(1)+'%'; i.style.background = `linear-gradient(90deg, ${h.color}, #ffffff)`; bar.appendChild(i);
+        if(delta>0){ anyIncrease = true; card.classList.add('updated'); const d = document.createElement('div'); d.className='delta'; d.textContent = `↑ +${delta}`; card.appendChild(d); setTimeout(()=> d.classList.add('show'), 50); setTimeout(()=> card.classList.remove('updated'), 1200); chime(); }
+        card.appendChild(rank); card.appendChild(name); card.appendChild(pts); card.appendChild(bar);
+        grid.appendChild(card);
+      });
+      if(anyIncrease) confettiBurst();
+      last = new Map(items.map(h=>[h.id, h]));
+    }
+
+    async function loop(){ try{ const raw = await getHouses(); const items = normalizeHouses(raw); render(items); } catch(e){} finally{ setTimeout(loop, CONFIG.POLL_MS); } }
+
+    // ===== TICKER =====
+    const tickerTrack = document.getElementById('tickerTrack');
+    const seenEvents = new Set();
+    function fmtTime(ts){ try{ return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});}catch{ return ''} }
+    function addTickerItem(evt){
+      if(!evt) return; const id = evt.id ?? `${evt.ts}-${evt.student ?? ''}-${evt.house ?? ''}-${evt.value ?? ''}`; if(seenEvents.has(id)) return; seenEvents.add(id);
+      const el = document.createElement('div'); el.className='ticker-item';
+      const label = `${evt.student ?? 'Student'} earned ${evt.value ?? 1} ${evt.coin ?? 'coin'} for ${evt.house ?? 'House'} • ${fmtTime(evt.ts)}`;
+      el.innerHTML = `🪙 <b>${label}</b> <span class="meta">#${evt.houseId ?? ''}</span>`;
+      tickerTrack.appendChild(el);
+      if(tickerTrack.childElementCount<6){ const clone=el.cloneNode(true); clone.setAttribute('aria-hidden','true'); tickerTrack.appendChild(clone); }
+    }
+    async function loopEvents(){ try{ const events = await getEvents(); events.slice().reverse().forEach(addTickerItem); } catch(e){} finally{ setTimeout(loopEvents, CONFIG.EVENTS_POLL_MS); } }
+
+    // ==========================
+    // MOCK DATA
+    // ==========================
+    let mockHouses = [
+      {id:1, name:'Phoenix', points:1280, color:palette[0]},
+      {id:2, name:'Griffin', points:1210, color:palette[1]},
+      {id:3, name:'Dragon',  points:1180, color:palette[2]},
+      {id:4, name:'Unicorn', points:1150, color:palette[3]},
+    ];
+    function mockTick(){ const k=Math.floor(Math.random()*3)+1; for(let n=0;n<k;n++){ const i=Math.floor(Math.random()*mockHouses.length); mockHouses[i].points += Math.floor(Math.random()*25); } return JSON.parse(JSON.stringify(mockHouses)); }
+
+    const names=['Ava','Noah','Mia','Liam','Zoe','Eli','Ivy','Owen','Kai','Leah'];
+    const coins=['Respect','Leadership','Teamwork','Creativity','Kindness'];
+    let mockEventId=0;
+    function mockEventsTick(){ const out=[]; const ct=Math.floor(Math.random()*3); for(let i=0;i<ct;i++){ const h=mockHouses[Math.floor(Math.random()*mockHouses.length)]; const val=Math.floor(Math.random()*3)+1; out.push({ id:'mock'+(++mockEventId), ts:new Date().toISOString(), student:names[Math.floor(Math.random()*names.length)]+' '+String.fromCharCode(65+Math.floor(Math.random()*26))+'.', coin:coins[Math.floor(Math.random()*coins.length)], value:val, house:h.name, houseId:h.id }); } return out; }
+
+    // ==========================
+    // SELF-TESTS
+    // ==========================
+    (function tests(){
+      const results=[]; function assert(name, cond){ const ok=!!cond; results.push({name, ok}); if(!ok) console.error('TEST FAIL:', name); else console.log('TEST PASS:', name); }
+      const t1 = normalizeHouses([{id:10,name:'A',points:5}])[0];
+      assert('normalize: id', t1.id===10); assert('normalize: name', t1.name==='A'); assert('normalize: points', t1.points===5);
+      const t2 = normalizeHouses([{houseId:7, house:'B', score:9}])[0];
+      assert('normalize: houseId->id', t2.id===7); assert('normalize: house->name', t2.name==='B'); assert('normalize: score->points', t2.points===9);
+      const t3 = normalizeHouses([{}])[0];
+      assert('normalize: default id', t3.id===1); assert('normalize: default name', t3.name==='House 1'); assert('normalize: default points', t3.points===0);
+      assert('computeMaxPoints', computeMaxPoints([{points:1},{points:9},{points:3}])===9);
+      const s = sortHouses([{points:1},{points:9},{points:3}]); assert('sortHouses[0] is max', s[0].points===9);
+      console.log('\nSELF-TEST DONE');
+    })();
+
+    // Kick off loops
+    applyLogo();
+    loop();
+    loopEvents();
+  </script>
+
+  <!-- ==========================
+    WINDOWS ONE‑CLICK LAUNCHERS (copy out as .bat files)
+    Place these next to this HTML file, e.g. C:\\CritterCoinDisplay\\
+    Double‑click the desired .bat. They start a local server and open Edge in app/kiosk mode.
+  ========================== -->
+  <!-- Start Display.bat
+  @echo off
+  cd /d "%~dp0"
+  set "PORT=8000"
+  where python >nul 2>nul || (
+    echo Python not found. Opening Microsoft Store to install it...
+    start ms-windows-store://pdp/?productid=9PJPW5LDXLZ5
+    pause
+    exit /b 1
+  )
+  for /f "tokens=5" %%a in ('netstat -aon ^| findstr :%PORT% ^| findstr LISTENING') do taskkill /pid %%a /f >nul 2>nul
+  start "cc-server" /b python -m http.server %PORT%
+  timeout /t 1 >nul
+  start "cc-display" msedge --app="http://localhost:%PORT%/index.html"
+  exit /b 0
+  -->
+  <!-- Start Kiosk.bat
+  @echo off
+  cd /d "%~dp0"
+  set "PORT=8000"
+  where python >nul 2>nul || (
+    echo Python not found. Opening Microsoft Store to install it...
+    start ms-windows-store://pdp/?productid=9PJPW5LDXLZ5
+    pause
+    exit /b 1
+  )
+  for /f "tokens=5" %%a in ('netstat -aon ^| findstr :%PORT% ^| findstr LISTENING') do taskkill /pid %%a /f >nul 2>nul
+  start "cc-server" /b python -m http.server %PORT%
+  timeout /t 1 >nul
+  start "cc-kiosk" msedge --kiosk "http://localhost:%PORT%/index.html" --edge-kiosk-type=fullscreen
+  exit /b 0
+  -->
+
+  <!-- ==========================
+    GITHUB PAGES HOSTING (later)
+    1) Create a new GitHub repo (public/private).
+    2) Add this file as index.html, commit & push.
+    3) Settings → Pages → Deploy from main / root.
+    4) Share URL → users click Install.
+  ========================== -->
+</body>
+</html>
