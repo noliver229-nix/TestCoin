@@ -98,6 +98,9 @@
       <div class="row"><label for="logoUrl">Logo URL / Data URL</label><input id="logoUrl" placeholder="https://example.org/logo.png or data:image/png;base64,..."/></div>
       <div class="row"><label for="logoFile">Upload Logo</label><input id="logoFile" type="file" accept="image/*"/></div>
       <div class="row"><label for="logoH">Logo Height (px)</label><input id="logoH" type="number" min="20" max="200" placeholder="44"/></div>
+      <div class="row"><label for="poll">Score Poll (ms)</label><input id="poll" type="number" min="2000" step="1000" placeholder="8000"/></div>
+      <div class="row"><label for="epoll">Events Poll (ms)</label><input id="epoll" type="number" min="2000" step="1000" placeholder="6000"/></div>
+      <div class="row"><label for="maxH">Max Houses</label><input id="maxH" type="number" min="1" max="48" placeholder="12"/></div>
       <div class="row"><label for="fallback">Fallback to Demo</label><select id="fallback"><option value="true">Yes</option><option value="false">No</option></select></div>
       <div class="row"><label for="darkSel">Dark Theme</label><select id="darkSel"><option value="true">Dark</option><option value="false">Light</option></select></div>
       <div class="note">Settings are stored locally in this browser. You can also pass URL params like <code>?orgid=8058&apiKey=...&logo=...&logoH=44</code>.</div>
@@ -190,9 +193,9 @@
     const apiUrl = document.getElementById('apiUrl');
     const eventsUrl = document.getElementById('eventsUrl');
     const apiKey = document.getElementById('apiKey');
-    const poll = document.getElementById('poll');
-    const epoll = document.getElementById('epoll');
-    const maxH = document.getElementById('maxH');
+    let poll = document.getElementById('poll');
+    let epoll = document.getElementById('epoll');
+    let maxH = document.getElementById('maxH');
     const fallback = document.getElementById('fallback');
     const darkSel = document.getElementById('darkSel');
     const logoUrlInput = document.getElementById('logoUrl');
@@ -233,13 +236,17 @@
     settingsBtn.addEventListener('click', ()=> openSettings());
 
     function openSettings(){
+      // Ensure dynamic defaults if elements are missing (defensive in case of stale HTML)
+      poll ||= document.getElementById('poll');
+      epoll ||= document.getElementById('epoll');
+      maxH ||= document.getElementById('maxH');
       orgId.value = CONFIG.ORG_ID;
       apiUrl.value = CONFIG.API_URL;
       eventsUrl.value = CONFIG.EVENTS_URL;
       apiKey.value = CONFIG.API_KEY;
-      poll.value = CONFIG.POLL_MS;
-      epoll.value = CONFIG.EVENTS_POLL_MS;
-      maxH.value = CONFIG.MAX_HOUSES;
+      if(poll)  poll.value  = CONFIG.POLL_MS;
+      if(epoll) epoll.value = CONFIG.EVENTS_POLL_MS;
+      if(maxH)  maxH.value  = CONFIG.MAX_HOUSES;
       fallback.value = String(CONFIG.FALLBACK_TO_MOCK);
       darkSel.value = String(CONFIG.DARK);
       logoUrlInput.value = CONFIG.LOGO_URL || '';
@@ -255,9 +262,9 @@
         API_URL: apiUrl.value||DEFAULTS.API_URL,
         EVENTS_URL: eventsUrl.value||DEFAULTS.EVENTS_URL,
         API_KEY: apiKey.value||'',
-        POLL_MS: Math.max(2000, Number(poll.value)||DEFAULTS.POLL_MS),
-        EVENTS_POLL_MS: Math.max(2000, Number(epoll.value)||DEFAULTS.EVENTS_POLL_MS),
-        MAX_HOUSES: Math.max(1, Number(maxH.value)||DEFAULTS.MAX_HOUSES),
+        POLL_MS: Math.max(2000, Number(poll?.value)||DEFAULTS.POLL_MS),
+        EVENTS_POLL_MS: Math.max(2000, Number(epoll?.value)||DEFAULTS.EVENTS_POLL_MS),
+        MAX_HOUSES: Math.max(1, Number(maxH?.value)||DEFAULTS.MAX_HOUSES),
         FALLBACK_TO_MOCK: fallback.value==='true',
         DARK: darkSel.value==='true',
         LOGO_URL: logoUrlInput.value||'',
@@ -267,6 +274,11 @@
       if(file){
         const reader = new FileReader();
         reader.onload = () => { logoUrlInput.value = reader.result; persist(); };
+        reader.readAsDataURL(file);
+      } else {
+        persist();
+      }
+    };
         reader.readAsDataURL(file);
       } else {
         persist();
